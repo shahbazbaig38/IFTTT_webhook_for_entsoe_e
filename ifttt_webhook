@@ -1,0 +1,59 @@
+import pandas as pd
+from entsoe import EntsoePandasClient
+import numpy as np
+import schedule
+import time
+from ast import Lt
+from datetime import datetime, timedelta
+from sqlite3 import Timestamp
+from xmlrpc.client import DateTime
+import pandas as pd
+import time
+from ifttt_webhook import IftttWebhook
+
+def create_df_se4():
+    client = EntsoePandasClient(api_key='f719b552-775c-4614-88c4-fb904bbae022')
+    today = pd.Timestamp("today").strftime("%Y%m%d")  # Fetch todays date
+    # tomorrow = (datetime.date.today() + datetime.timedelta(days=1)).strftime("%Y%m%d") # Fetch tomorrows date
+    # Input parameters for entsoe API request
+    start = pd.Timestamp(today+' '+'00:00:00', tz='Europe/Helsinki')
+    end = pd.Timestamp(today+' '+'23:00:00', tz='Europe/Helsinki')
+    # country_code_1 = 'SE_1'  # Swedish elomrade SE1
+    # country_code_2 = 'SE_2'  # Swedish elomrade SE2
+    # country_code_3 = 'SE_3'  # Swedish elomrade SE3
+    country_code_4 = 'FI'  # Finland
+    # query day-ahead market prices (€/MWh) from entsoe pandaclient
+    DA_pricesSE4 = client.query_day_ahead_prices(
+        country_code_4, start=start, end=end)
+    DA_pricesSE4.sort_values(inplace=True)
+    df = pd.Series.to_frame(DA_pricesSE4).reset_index()
+    df.columns = ['Datetime', 'PriceSE4']
+    # Format date time to enable comparison on hourly base
+    df['Datetime'] = df['Datetime'].dt.strftime("%Y-%m-%d %H")
+    df.to_csv('DayAheadSE4.csv')  # save to csv
+
+schedule.every().day.at("00:00").do(create_df_se4)
+while True:
+    schedule.run_pending()
+    time.sleep(1)
+
+IFTTT_KEY = 'dsrDa9OjM5BYxtuKHZemg6Va16aWjzkIyp007clWJ-0'
+ifttt = IftttWebhook(IFTTT_KEY)
+
+DAcsv = pd.read_csv(r'./DayAheadSE4.csv')
+df = pd.DataFrame(DAcsv)
+
+time1, time2 = df.iloc[0]['Datetime'], df.iloc[1]['Datetime']
+
+def trigger_check():
+    if time1 == pd.Timestamp("now").strftime("%Y-%m-%d %H"):
+        ifttt.trigger('SE4_price_low', value1='First Lowest hour')
+    elif time2 == pd.Timestamp("now").strftime("%Y-%m-%d %H"):
+        ifttt.trigger('SE4_price_high', value1='Second Lowest hour')
+    else:
+        time.sleep(1)
+
+schedule.every().hour.do(trigger_check)
+while 1:
+    schedule.run_pending()
+    time.sleep(1)
