@@ -12,7 +12,7 @@ import time
 from ifttt_webhook import IftttWebhook
 
 def create_df_se4():
-    client = EntsoePandasClient(api_key='f719b552-775c-4614-88c4-fb904bbae022')
+    client = EntsoePandasClient(api_key='entsoe e key')
     today = pd.Timestamp("today").strftime("%Y%m%d")  # Fetch todays date
     # tomorrow = (datetime.date.today() + datetime.timedelta(days=1)).strftime("%Y%m%d") # Fetch tomorrows date
     # Input parameters for entsoe API request
@@ -37,7 +37,7 @@ while True:
     schedule.run_pending()
     time.sleep(1)
 
-IFTTT_KEY = 'dsrDa9OjM5BYxtuKHZemg6Va16aWjzkIyp007clWJ-0'
+IFTTT_KEY = 'IFTTT maker key'
 ifttt = IftttWebhook(IFTTT_KEY)
 
 DAcsv = pd.read_csv(r'./DayAheadSE4.csv')
